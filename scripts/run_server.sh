@@ -1,31 +1,34 @@
 #!/usr/bin/env bash
 #
-# run_server.sh — launch rkllama inside the toolbox with a given model and
-# platform. Assumes you're already inside the rkllama toolbox container.
+# run_server.sh — launch rkllama inside the toolbox, serving whatever
+# .rkllm models are found under a models directory. Assumes you're already
+# inside the rkllama toolbox container.
 #
 # Usage:
-#   ./run_server.sh --model <model-name> --platform <rk3588|rk3576> [--port <port>]
+#   ./run_server.sh --models <models-dir> --platform <rk3588|rk3576> [--port <port>]
 
 set -euo pipefail
 
-MODEL=""
+MODELS_DIR=""
 PLATFORM="rk3588"
 PORT="8080"
 
 usage() {
-  echo "Usage: $0 --model <model-name> --platform <rk3588|rk3576> [--port <port>]"
+  echo "Usage: $0 --models <models-dir> --platform <rk3588|rk3576> [--port <port>]"
   echo ""
-  echo "  --model      Model name or path to a .rkllm file"
+  echo "  --models     Directory containing your .rkllm model files"
   echo "  --platform   Target NPU platform: rk3588 or rk3576 (default: rk3588)"
   echo "  --port       Port to serve on (default: 8080)"
   echo ""
+  echo "rkllama serves every model found under --models; pick which one to use"
+  echo "per request via the \"model\" field in the API call, Ollama-style."
   echo "See docs/models.md for pre-converted model sources and conversion steps."
   exit 1
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --model) MODEL="$2"; shift 2 ;;
+    --models) MODELS_DIR="$2"; shift 2 ;;
     --platform) PLATFORM="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
     -h|--help) usage ;;
@@ -33,8 +36,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$MODEL" ]]; then
-  echo "Error: --model is required." >&2
+if [[ -z "$MODELS_DIR" ]]; then
+  echo "Error: --models is required." >&2
   usage
 fi
 
@@ -47,10 +50,9 @@ if [[ ! -e /dev/rknpu ]] && [[ ! -e /sys/kernel/debug/rknpu/version ]]; then
   echo "Warning: NPU device/debugfs not found. Check docs/host-config.md." >&2
 fi
 
-echo "==> Launching rkllama with model '${MODEL}' on ${PLATFORM} (port ${PORT})"
+echo "==> Launching rkllama on ${PLATFORM} (port ${PORT}), serving models from '${MODELS_DIR}'"
 
-cd /opt/rkllama
-python3 server.py \
-  --model "${MODEL}" \
-  --platform "${PLATFORM}" \
+rkllama_server \
+  --processor "${PLATFORM}" \
+  --models "${MODELS_DIR}" \
   --port "${PORT}"

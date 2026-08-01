@@ -40,7 +40,7 @@ the authoritative, up-to-date conversion script and parameters):
 ## Running with rkllama
 
 ```bash
-./scripts/run_server.sh --model <model-name> --platform rk3588
+./scripts/run_server.sh --models <models-dir> --platform rk3588
 ```
 
 See the main [README's Running the Server section](../README.md#running-the-server) for

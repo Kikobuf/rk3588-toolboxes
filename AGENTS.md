@@ -15,9 +15,14 @@ GPUs and Tenstorrent accelerators.
   (Strix Halo, Intel iGPU, Tenstorrent are all x86_64). All Dockerfiles must target
   `linux/arm64` and CI must build on arm runners (or cross-compile via buildx+QEMU).
 - RKLLM runtime version and NPU kernel driver version are tightly coupled — a mismatch is
-  the #1 support issue. Any change to the pinned `RKLLM_RUNTIME_VERSION` build arg must be
-  reflected in `docs/runtime-compatibility.md`, cross-checked against
+  the #1 support issue. `toolboxes/rkllama/Dockerfile` pins an exact upstream commit via the
+  `RKLLAMA_REF` build arg rather than tracking `main`, specifically so upstream restructuring
+  the install layout (as happened before) can't silently break the build — any change to that
+  pin must be reflected in `docs/runtime-compatibility.md`, cross-checked against
   https://github.com/airockchip/rknn-llm/releases.
+- `toolboxes/rk-llama-cpp/Dockerfile` pins upstream similarly via `RK_LLAMA_CPP_REF`, and
+  requires `-DLLAMA_RKNPU2=ON` at cmake configure time — that flag is off by default upstream,
+  and omitting it silently produces a CPU-only build with no NPU backend at all.
 - Models must be converted through RKNN-Toolkit2 on a separate x86_64 machine before they
   can run on the board — this is not something the toolbox containers do themselves. Don't
   imply model conversion happens on-device anywhere in docs.

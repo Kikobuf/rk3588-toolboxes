@@ -100,11 +100,13 @@ will fix that; see [Host Configuration](#host-configuration).
 ### Launch a server
 
 ```bash
-./scripts/run_server.sh --model Qwen2.5-1.5B-Instruct --platform rk3588
+./scripts/run_server.sh --models /path/to/models --platform rk3588
 ```
 
-This pulls a pre-converted `.rkllm` model (see [Converting Models](#converting-models) if
-you need a model that isn't already converted) and starts an OpenAI-compatible endpoint.
+Point `--models` at a directory of pre-converted `.rkllm` files (see
+[Converting Models](#converting-models) if you need a model that isn't already converted)
+and it starts an OpenAI-compatible endpoint serving all of them — pick which one to use
+per-request via the `model` field, Ollama-style.
 
 ---
 
@@ -152,7 +154,7 @@ model list.
 
 ```bash
 ./scripts/run_server.sh \
-  --model <model-name-or-path> \
+  --models <models-dir> \
   --platform rk3588 \
   --port 8080
 ```
