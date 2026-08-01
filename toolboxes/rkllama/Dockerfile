@@ -59,10 +59,23 @@ RUN cp src/rkllama/lib/librkllmrt.so src/rkllama/lib/librknnrt.so /usr/lib/ && \
     chmod 755 /usr/lib/librkllmrt.so /usr/lib/librknnrt.so && \
     ldconfig
 
-# Installs rkllama plus its pinned dependencies (Flask, transformers, torch,
-# etc.) and the rknn-toolkit-lite2 wheel vendored in src/rkllama/lib.
+# pyproject.toml pins rknn-toolkit-lite2 via relative "file:./..." direct
+# reference URLs (one per Python version). pip's vendored packaging rejects
+# these with "InvalidRequirement: Invalid URL given" — its file: URL
+# round-trip check fails because urllib.parse.urlunparse re-adds the "//"
+# authority component that a relative "file:./..." URI doesn't have. Strip
+# those lines and install the matching (cp312, the interpreter this image
+# uses) wheel directly as a plain path instead, which sidesteps requirement
+# URL parsing entirely. Re-check whether this patch is still needed
+# whenever RKLLAMA_REF is bumped.
+#
+# Installs rkllama plus its remaining pinned dependencies (Flask,
+# transformers, torch, etc.).
 RUN pip install --no-cache-dir "setuptools<82.0.0" && \
-    pip install --no-cache-dir .
+    sed -i '/rknn-toolkit-lite2 @ file:/d' pyproject.toml && \
+    pip install --no-cache-dir . && \
+    pip install --no-cache-dir \
+        src/rkllama/lib/rknn_toolkit_lite2-2.3.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
 
 # The GGUF/llama.cpp path (rkllama_server's --llamacpp flag) is handled by
 # the separate rk-llama-cpp toolbox — see AGENTS.md — so it's left unset here.
