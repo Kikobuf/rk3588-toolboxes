@@ -1,0 +1,70 @@
+name: Build and publish rk3588 toolboxes
+
+on:
+  schedule:
+    # Check weekly — rknn-llm releases less frequently than tt-metal/vLLM
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      rkllm_runtime_version:
+        description: "rkllm-runtime version to build against (e.g. 1.3.0)"
+        required: false
+        default: "1.3.0"
+  push:
+    branches: [main]
+    paths:
+      - "toolboxes/**"
+      - ".github/workflows/build.yml"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/${{ github.repository_owner }}/rk3588-toolboxes
+
+jobs:
+  build-rkllama:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push rkllama
+        uses: docker/build-push-action@v6
+        with:
+          context: toolboxes/rkllama
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            RKLLM_RUNTIME_VERSION=${{ github.event.inputs.rkllm_runtime_version || '1.3.0' }}
+          tags: |
+            ${{ env.IMAGE_BASE }}:rkllama
+            ${{ env.IMAGE_BASE }}:rkllama-${{ github.event.inputs.rkllm_runtime_version || '1.3.0' }}
+
+  build-rk-llama-cpp:
+    # Experimental fork — build on manual dispatch only, not the weekly schedule,
+    # since it's less stable and more likely to break a scheduled build.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push rk-llama-cpp (experimental)
+        uses: docker/build-push-action@v6
+        with:
+          context: toolboxes/rk-llama-cpp
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE_BASE }}:rk-llama-cpp
